@@ -30,7 +30,35 @@ class MyReporter {
 
     runner
       .once(EVENT_RUN_BEGIN, () => {
-        out = '';
+        out = {
+          attachments: [
+            {
+              "color": "#ff0000",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Tests finished. 2/3",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+              
+              ]
+            }
+          ]
+        };
+        if (process.env.CI_SLACK_REPORTER_ICON_URL) {
+          out.icon_url = process.env.CI_SLACK_REPORTER_ICON_URL;
+        } else {
+          out.icon_emoji = ":robot:"
+        }
+
+        out.username = process.env.CI_SLACK_REPORTER_USERNAME || 'Autotester'
+
       })
       .on(EVENT_SUITE_BEGIN, () => {
         this.increaseIndent();
@@ -41,16 +69,43 @@ class MyReporter {
       .on(EVENT_TEST_PASS, test => {
         // Test#fullTitle() returns the suite name(s)
         // prepended to the test title
-        out += `${this.indent()} ✅ ${test.fullTitle()}\n`;
+        out.attachments[0].blocks.push({
+					"type": "section",
+					"text": {
+						"type": "plain_text",
+						"text": `:white_check_mark: ${test.fullTitle()}`,
+						"emoji": true
+					}
+				})
       })
       .on(EVENT_TEST_FAIL, (test, err) => {
-        out += `${this.indent()} ⛔ ${test.fullTitle()} - error: ${err.message}\n`;
+        out.attachments[0].blocks.push({
+					"type": "section",
+					"text": {
+						"type": "plain_text",
+						"text": `:no_entry: ${test.fullTitle()} - error: \`${err.message}\``,
+						"emoji": true
+					}
+				})
       })
       .once(EVENT_RUN_END, () => {
-        out += `Test finished. ${stats.passes}/${stats.passes + stats.failures} ok`;
-        webhook.send({
-          text: out,
-        })
+        if (process.env.CI_SLACK_REPORTER_VIDEO_URL && stats.failures) {
+          out.attachments[0].blocks[2].accessory = {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Video recording",
+              "emoji": true
+            },
+            "value": "click_me_123",
+            "url": process.env.CI_SLACK_REPORTER_VIDEO_URL,
+            "action_id": "button-action"
+          }
+        }
+
+        out.attachments[0].blocks[0].text.text = `Tests finished ${stats.passes}/${stats.passes + stats.failures}`;
+        out.attachments[0].color = stats.failures ? "#a30200" : "#2eb886";
+        webhook.send(out)
       });
   }
 

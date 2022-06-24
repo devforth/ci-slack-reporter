@@ -1,6 +1,6 @@
 {
   "name": "ci-slack-reporter",
-  "version": "1.0.0",
+  "version": "1.0.7a2",
   "description": "",
   "main": "index.js",
   "scripts": {
