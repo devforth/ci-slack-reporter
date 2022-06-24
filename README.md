@@ -17,8 +17,8 @@ pipeline:
       - npm install ci-slack-reporter
       - export CI_SLACK_REPORTER_ICON_URL=https://raw.githubusercontent.com/devforth/ci-slack-reporter/master/assets/patron_autotester.png
       - export CI_SLACK_REPORTER_USERNAME="Patron Autotester"
-      - export CI_SLACK_REPORTER_VIDEO_URL=https://rp-e2e-test-recordings.s3.eu-central-1.amazonaws.com/output${CI_BUILD_NUMBER}.mp4
-      - export CI_SLACK_REPORTER_WEBHOOK=https://hooks.slack.com/services/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
+      - export CI_SLACK_REPORTER_VIDEO_URL=https://<bucket name>.s3.eu-central-1.amazonaws.com/output${CI_BUILD_NUMBER}.mp4
+      - export CI_SLACK_REPORTER_WEBHOOK=https://hooks.slack.com/services<your slack webhook>
       - cypress run --reporter ci-slack-reporter --spec "cypress/e2e/$${TEST_NAME}.cy.js"
 
 ```
