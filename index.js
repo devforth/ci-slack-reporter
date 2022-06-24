@@ -94,7 +94,7 @@ class MyReporter {
             "type": "button",
             "text": {
               "type": "plain_text",
-              "text": "Video recording",
+              "text": "Watch video",
               "emoji": true
             },
             "value": "click_me_123",
