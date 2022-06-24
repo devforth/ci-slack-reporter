@@ -1,7 +1,7 @@
 {
   "name": "ci-slack-reporter",
-  "version": "1.0.7a3",
-  "description": "",
+  "version": "1.0.7a5",
+  "description": "Mocha/Cypress reporter to post tests results directly to Slack",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -18,5 +18,6 @@
   "homepage": "https://github.com/devforth/ci-slack-reporter#readme",
   "dependencies": {
     "@slack/webhook": "^6.1.0"
-  }
+  },
+  "keywords": ["slack", "mocha reporter", "mocha", "cypress", "", "ci", "woodpeckerci", "docker"]
 }
