@@ -17,6 +17,7 @@ const {
 if (!process.env.CI_SLACK_REPORTER_WEBHOOK) {
   console.error('CI_SLACK_REPORTER_WEBHOOK env variable is not set, reported will not work, please do export CI_SLACK_REPORTER_WEBHOOK=...')
 }
+const fails_only_webhook = process.env.CI_SLACK_REPORTER_FAILS_ONLY_WEBHOOK && new IncomingWebhook(process.env.CI_SLACK_REPORTER_FAILS_ONLY_WEBHOOK);
 
 const webhook = new IncomingWebhook(process.env.CI_SLACK_REPORTER_WEBHOOK);
 
@@ -106,6 +107,12 @@ class MyReporter {
         out.attachments[0].blocks[0].text.text = `Tests finished ${stats.passes}/${stats.passes + stats.failures}`;
         out.attachments[0].color = stats.failures ? "#a30200" : "#2eb886";
         webhook.send(out)
+    	if (stats.failures) {
+	 	out.attachments[0].blocks = out.attachments[0].blocks.filter(el => {
+			return !el.text.text.startsWith(":white") 
+		 })
+		fails_only_webhook?.send(out)
+	}
       });
   }
 
