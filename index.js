@@ -109,7 +109,8 @@ class MyReporter {
         webhook.send(out)
     	if (stats.failures) {
 	 	out.attachments[0].blocks = out.attachments[0].blocks.filter(el => {
-			return !el?.text?.text?.startsWith(":white") 
+			return !el?.text?.text?.startsWith(":white")
+			
 		 })
 		fails_only_webhook?.send(out)
 	}
