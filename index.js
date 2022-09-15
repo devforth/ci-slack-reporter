@@ -21,17 +21,33 @@ const fails_only_webhook = process.env.CI_SLACK_REPORTER_FAILS_ONLY_WEBHOOK && n
 
 const webhook = new IncomingWebhook(process.env.CI_SLACK_REPORTER_WEBHOOK);
 
-let out;
+let out = {};
+
+const SLACK_BLOCKS_LIMIT = 50;
+function splitIfBlocksLimit(obj) {
+  const res = [];
+  while (obj.attachments[0].blocks.length != 0) {
+    const deepClone = JSON.parse(JSON.stringify(obj))
+    deepClone.attachments[0].blocks = deepClone.attachments[0].blocks.slice(0, SLACK_BLOCKS_LIMIT); 
+    obj.attachments[0].blocks.splice(0, SLACK_BLOCKS_LIMIT);
+    res.push(deepClone);
+  }
+  return res;
+
+}
 
 // this reporter outputs test results, indenting two spaces per suite
 class MyReporter {
   constructor(runner) {
     this._indents = 0;
     const stats = runner.stats;
+    const filename = runner.suite?.file;
 
     runner
       .once(EVENT_RUN_BEGIN, () => {
-        out = {
+        console.log(`⚡runner ${filename}`);
+        
+        out[filename] = {
           attachments: [
             {
               "color": "#ff0000",
@@ -47,18 +63,17 @@ class MyReporter {
                 {
                   "type": "divider"
                 },
-              
               ]
             }
           ]
         };
         if (process.env.CI_SLACK_REPORTER_ICON_URL) {
-          out.icon_url = process.env.CI_SLACK_REPORTER_ICON_URL;
+          out[filename].icon_url = process.env.CI_SLACK_REPORTER_ICON_URL;
         } else {
-          out.icon_emoji = ":robot:"
+          out[filename].icon_emoji = ":robot:"
         }
 
-        out.username = process.env.CI_SLACK_REPORTER_USERNAME || 'Autotester'
+        out[filename].username = process.env.CI_SLACK_REPORTER_USERNAME || 'Autotester'
 
       })
       .on(EVENT_SUITE_BEGIN, () => {
@@ -70,28 +85,28 @@ class MyReporter {
       .on(EVENT_TEST_PASS, test => {
         // Test#fullTitle() returns the suite name(s)
         // prepended to the test title
-        out.attachments[0].blocks.push({
+        out[filename].attachments[0].blocks.push({
 					"type": "section",
 					"text": {
 						"type": "plain_text",
-						"text": `:white_check_mark: ${test.fullTitle()}`,
+						"text": `${out[filename].attachments[0].blocks.length - 1} - :white_check_mark: ${test.fullTitle()}`,
 						"emoji": true
 					}
 				})
       })
       .on(EVENT_TEST_FAIL, (test, err) => {
-        out.attachments[0].blocks.push({
+        out[filename].attachments[0].blocks.push({
 					"type": "section",
 					"text": {
 						"type": "plain_text",
-						"text": `:no_entry: ${test.fullTitle()} - error: \`${err.message}\``,
+						"text": `${out[filename].attachments[0].blocks.length - 1} - :no_entry: ${test.fullTitle()} - error: \`${err.message}\``,
 						"emoji": true
 					}
 				})
       })
       .once(EVENT_RUN_END, () => {
         if (process.env.CI_SLACK_REPORTER_VIDEO_URL && stats.failures) {
-          out.attachments[0].blocks[2].accessory = {
+          out[filename].attachments[0].blocks[2].accessory = {
             "type": "button",
             "text": {
               "type": "plain_text",
@@ -104,17 +119,24 @@ class MyReporter {
           }
         }
 
-        out.attachments[0].blocks[0].text.text = `Tests finished ${stats.passes}/${stats.passes + stats.failures}`;
-        out.attachments[0].color = stats.failures ? "#a30200" : "#2eb886";
-        webhook.send(out)
-    	if (stats.failures) {
-	 	out.attachments[0].blocks = out.attachments[0].blocks.filter(el => {
-			return !el?.text?.text?.startsWith(":white")
-			
-		 })
-		fails_only_webhook?.send(out)
-	}
-      });
+        out[filename].attachments[0].blocks[0].text.text = `Tests finished ${stats.passes}/${stats.passes + stats.failures}`;
+        out[filename].attachments[0].color = stats.failures ? "#a30200" : "#2eb886";
+        (async () => {
+          for (const part of splitIfBlocksLimit(out[filename])) {
+            await webhook.send(part);
+          };
+        })();
+        
+
+        if (stats.failures) {
+          out[filename].attachments[0].blocks = out[filename].attachments[0].blocks.filter(el => {
+            return !el?.text?.text?.startsWith(":white")
+          })
+          splitIfBlocksLimit(out[filename]).forEach((part) => {
+            fails_only_webhook?.send(part);
+          });
+	      }
+    });
   }
 
   indent() {
